@@ -75,7 +75,8 @@
 <p><a href="mailto:justin.chavez22@gmail.com">justin.chavez22@gmail.com</a> · <a href="https://x.com/jus10chavez">Twitter</a> · <a href="https://www.linkedin.com/in/justinlchavez">LinkedIn</a></p>
 <hr>
 <p><em>Disclaimer: Above was largely written by myself with AI functioning for grammar. Below is the first pass at describing the technical details with LLMs. I plan to rewrite it by hand more extensively.</em></p>
-<h2 id="how-it-was-made">How it was made</h2>
+<div id="subscribe"><p>Subscribe to get the full technical write-up when it&#39;s out.</p>
+<iframe src="https://justinchavez.substack.com/embed" title="Subscribe to Justin's Substack" width="480" height="320" loading="lazy" style="display:block;width:100%;max-width:480px;margin:16px auto 0;border:1px solid #EEE;background:white" frameborder="0" scrolling="no"></iframe></div><h2 id="how-it-was-made">How it was made</h2>
 <figure class="wide">
 <img src="/assets/posts/isometric-sf/writeup/teaching-chain-v2.png" alt="Diagram in two rows. Top: 45 Google renders, shown with a hillside of orange-roofed housing; 45 Nano Banana 2 targets, the same view restyled; 225 fill-in examples, shown as five versions of that target with a red-boxed area swapped for darkened photo; then a LoRA on the 20-billion-parameter Qwen, with Qwen's logo. An arrow carries Qwen, its LoRA and the Lightning adapter down as the teacher. Bottom: 1,460 places as raw photos, shown with a curving housing tract; 1,460 Qwen paintings; 4,380 examples, shown as three color versions of the photo; a LoRA on the 4-billion-parameter Klein, with Black Forest Labs' logo; then about 177,000 paintings, shown with Salesforce Tower" loading="lazy" width="1493" height="1369">
 </figure><p>The top row teaches the look. I started with 45 Google renders, views of the Bay from the map&#39;s angle. Nano Banana 2 restyled each one as pixel art, in the same view, and those 45 images set the look of the map. Painting the whole map with Nano Banana 2 would have cost about $7,000, so I needed an open model I could train.</p>
@@ -83,7 +84,7 @@
 <p>The bottom row moves that look to a smaller model. Qwen, its LoRA and the Lightning adapter, which cuts it to 4 steps, became the teacher. It painted 1,460 places from raw photos, and those paintings became the targets for FLUX.2 Klein 4B, a model a fifth its size. Each photo went in 3 ways, in true color, shifted, and shifted more, always with the same target, to teach Klein not to copy Google&#39;s color quirks. That&#39;s the 4,380 examples.</p>
 <p>Klein runs nearly 4 times faster than Qwen, which is what made painting the whole Bay affordable. You&#39;d expect a model that small to lose the city. By my own measure, it kept buildings and roads in place a little better than its teacher. It went on to make about 177,000 paintings, like the Salesforce Tower at the end of the diagram.</p>
 <p>Each painting is made alone, so neighbors disagree at the edges. Stitching them took two tricks. Only the middle of each painting is kept, and it fades into the next one across a thin band I call the hem. A color correction then evens out each painting against its neighbors, and the joins mostly disappear.</p>
-<p>A more extensive write-up is coming, detailing the code fixes, evals, color corrections and seam addressing that were involved. <a href="#subscribe">Subscribe below</a> to get it when it&#39;s out.</p>
+<p>A more extensive write-up is coming, detailing the code fixes, evals, color corrections and seam addressing that were involved. <a href="#subscribe">Subscribe above</a> to get it when it&#39;s out.</p>
 <h2 id="thank-you-modal">Thank you, Modal</h2>
 <p>Disclosure: <a href="https://modal.com">Modal</a> gave me a credit grant.</p>
 <p><strong>The GPU hours</strong></p>
@@ -99,9 +100,6 @@
 <p>A small guard script polled the bill and stopped the app at a set dollar amount, so they could run overnight while I slept.</p>
 <p><strong>The big speed-up: a queue</strong></p>
 <p>We kept six batches always in flight with <code>.spawn()</code> and a longer <code>scaledown_window</code>, so containers stayed warm instead of paying repeated cold starts. Three H100s went from 29 to about 68 images a minute at 1536 px.</p>
-<hr>
-<div id="subscribe"><p>The full technical write-up is coming. Subscribe to get it when it&#39;s out.</p>
-<iframe src="https://justinchavez.substack.com/embed" title="Subscribe to Justin's Substack" width="480" height="320" loading="lazy" style="display:block;width:100%;max-width:480px;margin:16px auto 0;border:1px solid #EEE;background:white" frameborder="0" scrolling="no"></iframe></div>
 
 </div>
 </article>
