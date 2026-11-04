@@ -1,0 +1,127 @@
+/* Based on Justin's archived 2019 homepage. */
+* { box-sizing: border-box; }
+body { margin: 0; background: #fff; color: #333; font: 15px/1.6 Arial, "Helvetica Neue", Helvetica, sans-serif; }
+a { color: #337ab7; text-decoration: none; }
+a:hover { color: #23527c; text-decoration: underline; }
+a:focus-visible { outline: 2px solid #337ab7; outline-offset: 3px; }
+header { min-height: 50px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 0 15px; background: #f8f8f8; border-bottom: 1px solid #e7e7e7; }
+header a { color: #666; }
+.name { font-size: 18px; padding: 12px 0; }
+nav { display: flex; gap: 30px; }
+nav a { padding: 15px 0; }
+main { width: min(660px, calc(100% - 40px)); margin: 28px auto 56px; }
+h1 { font-size: 30px; font-weight: 400; line-height: 1.1; margin: 0 0 16px; }
+p { margin: 0 0 20px; }
+.links-label { margin-bottom: 0; }
+ul { margin: 0 0 20px; padding-left: 24px; }
+@media (max-width: 600px) {
+  header { gap: 16px; }
+  .name { font-size: 16px; }
+  nav { gap: 18px; font-size: 12px; }
+  main { width: auto; margin: 24px 20px 40px; }
+}
+
+/* Article typography stays close to the original, plain homepage. */
+/* One reading column on every page, so the left edge never jumps. */
+h2 { font-size: 22px; font-weight: 400; line-height: 1.3; margin: 28px 0 14px; }
+h3 { font-size: 18px; font-weight: 500; margin: 24px 0 12px; }
+img { max-width: 100%; height: auto; }
+.skip-link { position: absolute; top: -100px; left: 15px; padding: 8px; background: #fff; }
+.skip-link:focus { top: 6px; }
+.post { font-size: 16px; line-height: 1.7; overflow-wrap: anywhere; }
+.post h1 { line-height: 1.2; margin-bottom: 12px; }
+.post h2, .post h3 { scroll-margin-top: 20px; }
+.post .post-meta { color: #666; font-size: 13px; margin-bottom: 32px; }
+.back-link { font-size: 13px; margin-bottom: 24px; }
+.post-body a { text-decoration: underline; text-underline-offset: 3px; }
+.post-body li { margin-bottom: 7px; }
+.post-body ul, .post-body ol { padding-left: 24px; margin-bottom: 20px; }
+blockquote { margin: 24px 0; padding: 0 0 0 18px; border-left: 3px solid #ddd; color: #555; }
+blockquote p:last-child { margin-bottom: 0; }
+code { font: .9em/1.6 ui-monospace, Consolas, monospace; background: #f5f5f5; padding: 2px 4px; }
+pre { max-width: 100%; overflow-x: auto; padding: 16px; background: #f5f5f5; margin: 24px 0; }
+pre code { padding: 0; background: none; overflow-wrap: normal; }
+.table-scroll { max-width: 100%; overflow-x: auto; margin: 24px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; border-bottom: 1px solid #ddd; padding: 8px 12px; }
+hr { border: 0; border-top: 1px solid #ddd; margin: 28px 0; }
+.post-footer { margin-top: 40px; font-size: 13px; }
+.post-list { list-style: none; padding: 0; }
+.post-list li { margin-bottom: 24px; }
+.post-list time { display: block; font-size: 12px; color: #666; margin-top: 4px; }
+.post-list p { margin: 6px 0 0; }
+.feed-link { margin-top: 32px; font-size: 12px; }
+.draft-notice { color: #725416; background: #fff9e9; padding: 10px 12px; font-size: 13px; }
+@media (max-width: 360px) { header { flex-wrap: wrap; gap: 0; } nav { gap: 20px; } }
+@media print { body > header, .skip-link, .back-link, .post-footer { display: none; } main, .post { width: auto; max-width: none; margin: 0; } a { color: inherit; } pre { white-space: pre-wrap; } }
+
+/* 2019-style writing entries and the homepage “Updated” line. */
+nav a[aria-current="page"] { color: #333; }
+.updated { margin-top: 44px; color: #333; }
+.entry { margin: 0 0 30px; }
+.entry h2, .entry h3 { font-size: 26px; font-weight: 400; line-height: 1.25; margin: 0 0 6px; }
+.entry .date { font-weight: 700; font-size: 13px; margin: 0 0 2px; }
+.entry p { margin: 0; }
+@media (max-width: 600px) { .entry h2, .entry h3 { font-size: 22px; } }
+.post-body video { display: block; width: 100%; height: auto; background: #f5f5f5; }
+.post-body figure { margin: 24px 0; }
+.post-body figcaption { color: #666; font-size: 13px; margin-top: 8px; }
+.post-body table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px; font-variant-numeric: tabular-nums; }
+.post-body th, .post-body td { border-bottom: 1px solid #e5e5e5; padding: 6px 10px 6px 0; text-align: left; vertical-align: top; }
+.post-body th { font-weight: 700; border-bottom-color: #ccc; }
+.post-body .chat { border-left: 3px solid #e5e5e5; padding-left: 16px; margin-top: 0; margin-bottom: 24px; }
+.post-body .collage { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin: 0 0 24px; }
+.post-body .collage img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; object-fit: cover; }
+.post-body .collage a { position: relative; display: block; text-decoration: none; }
+.post-body .collage a:focus-visible { outline: 2px solid #337ab7; outline-offset: -2px; }
+.post-body .collage a span { position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 8px; background: rgba(0, 0, 0, .75); color: #fff; font-size: 12px; font-weight: 700; line-height: 1.4; opacity: 0; transition: opacity .15s; pointer-events: none; }
+.post-body .collage a:hover span, .post-body .collage a:focus-visible span { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .post-body .collage a span { transition: none; } }
+@media (max-width: 600px) { .post-body .collage { grid-template-columns: repeat(2, 1fr); } .post-body .collage a:nth-child(n+7) { display: none; } }
+.post-body .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.post-body .pair img { display: block; width: 100%; height: auto; }
+@media (max-width: 600px) { .post-body .pair { grid-template-columns: 1fr; } }
+.media-slot { border: 1px dashed #ccc; color: #888; font-size: 13px; padding: 14px 16px; }
+
+/* Carousel: a swipeable row of slides. carousel.js adds arrows, tabs, and keys. */
+.carousel { margin: 24px 0 36px; }
+.carousel-track { position: relative; display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: thin; }
+.carousel-track:focus-visible { outline: 2px solid #337ab7; outline-offset: 4px; }
+.carousel .slide { flex: 0 0 100%; margin: 0; scroll-snap-align: start; }
+.slide-media { aspect-ratio: 16 / 10; background: #f5f5f5; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.slide-media video, .slide-media img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.slide-media .media-slot { border: 0; width: 100%; height: 100%; margin: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; }
+.post-body .slide figcaption { margin-top: 12px; font-size: 16px; color: #333; line-height: 1.6; }
+.slide figcaption strong { display: block; font-size: 13px; margin-bottom: 2px; }
+.carousel-nav { display: flex; align-items: center; gap: 10px 14px; margin-top: 16px; font-size: 13px; flex-wrap: wrap; }
+.carousel-nav .arrow { width: 30px; height: 30px; border: 1px solid #ddd; border-radius: 50%; background: #fff; color: #337ab7; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 0 2px; }
+.carousel-nav .arrow:disabled { color: #ccc; cursor: default; }
+.carousel-tabs { display: flex; flex-wrap: wrap; gap: 4px 12px; flex: 1; }
+.carousel-tabs button { background: none; border: 0; padding: 2px 0; color: #337ab7; font: inherit; cursor: pointer; }
+.carousel-tabs button:hover { text-decoration: underline; }
+.carousel-tabs button[aria-current="true"] { color: #333; font-weight: 700; text-decoration: none; }
+.carousel-count { color: #666; white-space: nowrap; }
+@media (max-width: 600px) { .carousel-tabs { order: 3; flex-basis: 100%; } .carousel-count { margin-left: auto; } }
+
+/* Slides / List toggle */
+.carousel-views { display: flex; justify-content: flex-end; gap: 0; margin: -4px 0 10px; font-size: 13px; }
+.carousel-views button { background: #fff; border: 1px solid #ddd; color: #337ab7; padding: 3px 12px; font: inherit; cursor: pointer; }
+.carousel-views button + button { border-left: 0; }
+.carousel-views button:first-child { border-radius: 3px 0 0 3px; }
+.carousel-views button:last-child { border-radius: 0 3px 3px 0; }
+.carousel-views button[aria-pressed="true"] { background: #f5f5f5; color: #333; font-weight: 700; }
+.carousel.is-list .carousel-track { display: block; overflow: visible; counter-reset: slide; }
+.carousel.is-list .slide { counter-increment: slide; margin: 0 0 18px; }
+.carousel.is-list .slide-media, .carousel.is-list .carousel-nav { display: none; }
+.carousel.is-list .slide figcaption { margin-top: 0; }
+.carousel.is-list .slide figcaption strong { font-size: 16px; margin-bottom: 4px; }
+.carousel.is-list .slide figcaption strong::before { content: counter(slide) ". "; }
+
+/* Wide photos: on larger screens, posts get a 1040 px column. Everything stays at a readable 660 px except the collage, which uses the full width. */
+@media (min-width: 601px) { main.post { width: min(1040px, calc(100% - 40px)); } }
+.post .back-link, .post .draft-notice, .post article > h1, .post .post-meta, .post-body > *, .post-footer { max-width: 660px; margin-inline: auto; }
+.post-body > .collage { max-width: none; }
+.post-body > figure.wide { max-width: none; }
+.post-body .slide figcaption, .post-body > figure > figcaption { max-width: 660px; margin-inline: auto; }
+.post-body > figure > img { display: block; margin-inline: auto; }
+.post-body > figure { margin-inline: auto; }

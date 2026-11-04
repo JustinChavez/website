@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Reusable Vue.js components inside Flask and Django templates, shown with a tool that looks up protein metadata.">
+  <title>Web Development with Python and Vue.js Components — Justin Chavez</title>
+  <link rel="canonical" href="https://www.justinchavez.com/blog/python-vue-components/">
+  <meta property="og:title" content="Web Development with Python and Vue.js Components — Justin Chavez">
+  <meta property="og:description" content="Reusable Vue.js components inside Flask and Django templates, shown with a tool that looks up protein metadata.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Justin Chavez">
+  <meta property="og:url" content="https://www.justinchavez.com/blog/python-vue-components/"><meta property="article:published_time" content="2021-11-18"><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Web Development with Python and Vue.js Components","description":"Reusable Vue.js components inside Flask and Django templates, shown with a tool that looks up protein metadata.","datePublished":"2021-11-18","author":{"@type":"Person","name":"Justin Chavez","url":"https://www.justinchavez.com/"},"mainEntityOfPage":"https://www.justinchavez.com/blog/python-vue-components/"}</script>
+  <link rel="alternate" type="application/rss+xml" title="Justin Chavez — Writing" href="/feed.xml">
+  <link rel="stylesheet" href="/personal.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header>
+    <a class="name" href="/">Justin Chavez</a>
+    <nav aria-label="Main navigation"><a href="/">Home</a><a href="/writing.html" aria-current="page">Writing / Tutorials</a></nav>
+  </header>
+  <main id="main" class="post">
+<p class="back-link"><a href="/writing.html">← Writing / Tutorials</a></p>
+
+<article>
+<h1>Web Development with Python and Vue.js Components</h1>
+<p class="post-meta">Justin Chavez · <time datetime="2021-11-18">November 18, 2021</time></p>
+<div class="post-body">
+<p><em>Written with Sophia Tabchouri. Originally published on the Reverie Labs engineering blog on November 18, 2021. That blog is no longer online, so I’ve republished the post here.</em></p>
+<p>At Reverie Labs, we use Python to power our machine learning model and data pipelines. We also use Python-based web frameworks such as Django for our internally deployed web applications (and for the less complicated ones, we use <a href="/blog/building-web-applications-from-python-scripts-with-streamlit/">Streamlit</a>!).</p>
+<p>In this blog post, we will be describing how we utilize Vue.js to enhance our web applications. Specifically, we will:</p>
+<ol>
+<li>Craft Vue components to asynchronously call backend functions and update the frontend</li>
+<li>Import those Vue components into a Vue instance for use in a Flask/Django template</li>
+<li>Expose the data variables of the Vue component as part of an external form</li>
+</ol>
+<p>The lessons will build on each other, culminating in a Flask+Vue.js web application inspired by medicinal chemistry. It’ll look something like this:</p>
+<p><img src="/assets/posts/python-vue-components/vue-component-demo.gif" alt="Animated demo: typing a task name and a PDB ID into a form, retrieving PDB metadata with the Vue component, and submitting the form."></p>
+<p><em>The green input box is the Vue component</em></p>
+<h2 id="before-vue-js">Before Vue.js</h2>
+<p>To trigger API calls and manipulate the frontend, you can use jQuery to communicate with the backend asynchronously. jQuery is easily embedded within Django’s HTML template files.</p>
+<p>While jQuery is flexible and functional, it can grow to be <a href="https://en.wikipedia.org/wiki/Code_bloat">code bloat</a>. For example, each HTML object must be identified and changes must be specified line by line. Often, you see template files have more jQuery than HTML!</p>
+<p>For complex web apps, frameworks like Vue are more suitable, as they simplify the code needed to write reactive web pages. A core feature of Vue is the ability to define and utilize Vue Components.</p>
+<h2 id="what-is-a-vue-component">What is a Vue Component?</h2>
+<p>Vue components are self-contained elements that can render HTML/CSS, store data within Javascript variables, and make GET/POST calls. Once defined, they are callable as HTML tags. For example, within existing HTML a Vue component can be rendered like below:</p>
+<p><img src="/assets/posts/python-vue-components/vue-component-in-form-sketch.png" alt="Sketch of an HTML/Bootstrap form with a Vue.js component inside it: a text input and a Submit button wrapped in a v-component tag."></p>
+<p><em>Check out the <a href="https://vuejs.org/v2/guide/components.html">Vue documentation</a> for a more in-depth walkthrough of Vue components.</em></p>
+<p>Here, the Vue component tags <code>&lt;vue-component&gt;&lt;/vue-component&gt;</code> are responsible for rendering a part of the frontend that takes user input. The components are usually defined in a .vue file and require Webpack to serve.</p>
+<h2 id="the-challenge-of-writing-vue-components-within-python-web-frameworks">The challenge of writing Vue Components within Python web frameworks</h2>
+<p>As a startup, we prefer to limit the number of technologies we employ and thus have to maintain. Thankfully like jQuery, Vue is importable as a CDN library removing the need to introduce a frontend server like Node.js.</p>
+<p>Initially, it was unclear how Vue components should be written within a CDN-based frontend. We cannot use .vue files since we are relying on a CDN library. In addition, Vue components should be defined in their own file so that they can be reused across multiple templates.</p>
+<p>After multiple iterations, we have figured out our preferred method for defining Vue components, and it&#39;s pretty straightforward!</p>
+<p>We will demonstrate our method with a web application that displays the characteristics of proteins, a helpful tool for medicinal chemists. The Vue component will interface with the <a href="http://klifs.net/">KLIFS</a> database to select and display metadata about specific proteins using their PDB id.</p>
+<h2 id="what-are-pdbs">What are PDBs?</h2>
+<p>To design drugs that inhibit disease-causing proteins, we must understand their structure.  A PDB is a file format that stores 3-D structural information about a protein. You can find more information about PDBs and how Reverie stores, aligns and organizes PDB files in <a href="https://web.archive.org/web/2024/https://blog.reverielabs.com/building-a-global-pdb-repository/">our blog post</a>.</p>
+<p>Collections of PDBs are available to download online, like <a href="http://klifs.net/">KLIFS</a> — an open-source database of kinase PDBs. The KLIFS database summarizes the protein structure with metadata such as DFG conformation. This metadata classifies the structure of the protein into binary options (<a href="https://www.cambridgemedchemconsulting.com/resources/hit_identification/focus/kinaseinhib.html">DFG is either in or out</a>).</p>
+<p>Certain subtypes of drugs, specifically kinase inhibitors, may prefer binding to the DFG in conformation while others have a preference for binding to the DFG out conformation. For example, the drug Imatinib (Gleevec), used to treat Leukemia, is known as a type-II kinase inhibitor since it inhibits proteins with a DFG-out conformation. There are many other protein metadata and drug classifications (<a href="https://pubmed.ncbi.nlm.nih.gov/26529477/">Roskoski Jr, 2016</a>), but we will focus on two for our demonstration: DFG and aC-Helix.</p>
+<h2 id="demo">Demo</h2>
+<p>Now that we understand the importance of protein metadata, it would be useful to have a tool that can automatically retrieve this information from KLIFS. We will build such a tool within a Vue component that displays the metadata of a searched protein.</p>
+<p>First, we must create the Flask backend that will query KLIFS and render the frontend HTML templates. While we are writing the demo in Flask, the Vue component method will also work in a Django application.</p>
+<h2 id="flask-application">Flask Application</h2>
+<p>Let&#39;s start with the following Flask application that queries the KLIFS API and renders our frontend templates <code>app.py</code>:</p>
+<pre><code class="language-python">from flask import Flask, render_template, request
+import requests
+
+app = Flask(__name__)
+
+&#39;&#39;&#39;Backend&#39;&#39;&#39;
+# Called by Vue to retrieve the properties of each PDB from KLIFS
+@app.route(&#39;/pdb_id/&lt;pdb_id&gt;&#39;, methods=[&#39;GET&#39;])
+def klifs_pdb_data(pdb_id):
+    # API Endpoint
+    URL = &quot;https://klifs.net/api/structures_pdb_list&quot;
+    
+    # PDB we would like to query for
+    PARAMS = {&#39;pdb-codes&#39;: pdb_id}
+
+    # Send the GET request to the API and retrieve any returned data
+    res = requests.get(url = URL, params = PARAMS)
+    data = res.json()
+
+    # If an error occured, return the error
+    if res.status_code == 400:
+        return data[1], 400
+        
+    # Return the first set of PDB characteristics
+    return data[0]
+    
+&#39;&#39;&#39;Frontend&#39;&#39;&#39;
+# Loads Vue component that renders the KLIFS selector
+@app.route(&quot;/frontend/&quot;)
+def vue_selector():
+    return render_template(&#39;frontend.html&#39;)
+</code></pre>
+<p>The <code>klifs_pdb_data</code> function uses a GET request to retrieve the metadata of a protein from KLIFS using the <code>pdb_id</code>. After checking for errors, it returns the metadata as a JSON object. The documentation regarding this API endpoint and other KLIFS API interactions can be found here: <a href="https://klifs.net/swagger/#/Structures/get_structures_pdb_list">https://klifs.net/swagger/#/Structures/get_structures_pdb_list</a></p>
+<p>The <code>vue_selector</code> function is responsible for rendering the HTML file <code>frontend.html</code>. This will be the template that imports our Vue component. Let’s now define a basic Vue component that we will expand on.</p>
+<h2 id="basic-vue-component">Basic Vue Component</h2>
+<p>We will be creating two HTML files:</p>
+<ul>
+<li><code>vue_component.html</code> defines the Vue component</li>
+<li><code>frontend.html</code> imports the component into a Vue instance.</li>
+</ul>
+<p>Let&#39;s write the first file <code>vue_component.html</code>:</p>
+<pre><code class="language-html">&lt;script type=&quot;text/x-template&quot; id=&quot;vue-component-template&quot;&gt;
+&lt;div&gt;
+    Hello World
+&lt;/div&gt;
+&lt;/script&gt;
+
+&lt;script&gt;
+var vue_component = {
+    template: &#39;#vue-component-template&#39;,
+    delimiters: [&#39;[[&#39;, &#39;]]&#39;],
+    data: function () {
+        return {
+        }
+    },
+    methods: {
+    }
+}
+&lt;/script&gt;
+</code></pre>
+<p>There are two sets of script tags. The first defines the HTML structure of the component; ours displays “Hello World” to the screen. The second set of script tags initializes a Vue component along with its properties and methods. We&#39;ll leave them empty for now.</p>
+<p>The template property of the Vue component imports the HTML structure using the script tag’s id <code>#vue-component-template</code>. Without this script tag separation, we would have to write HTML as a string <em><strong>within</strong></em> the Vue component. With a more complex component, this would prove difficult to read.</p>
+<p>To learn more Vue component definitions and their tradeoffs, check out this <a href="https://vuejsdevelopers.com/2017/03/24/vue-js-component-templates">Vue.js Developers blog post</a>.</p>
+<h2 id="calling-the-vue-component">Calling the Vue Component</h2>
+<p>We now have a defined Vue component! To display it, we will call it within Flask&#39;s frontend template. We will do that by initializing a Vue application and importing the component within a new file <code>frontend.html</code>:</p>
+<pre><code class="language-html">&lt;!doctype html&gt;
+
+&lt;title&gt;Simple Vue Component&lt;/title&gt;
+&lt;head&gt;
+    &lt;!-- Load required Bootstrap and BootstrapVue CSS --&gt;
+    &lt;link type=&quot;text/css&quot; rel=&quot;stylesheet&quot; href=&quot;//unpkg.com/bootstrap/dist/css/bootstrap.min.css&quot; /&gt;
+    &lt;link type=&quot;text/css&quot; rel=&quot;stylesheet&quot; href=&quot;//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.css&quot; /&gt;
+    &lt;!-- Load Vue followed by BootstrapVue and Axios--&gt;
+    &lt;script src=&quot;https://cdn.jsdelivr.net/npm/vue/dist/vue.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;https://unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;https://unpkg.com/axios/dist/axios.min.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+
+&lt;body&gt;
+    &lt;div id=&quot;app&quot;&gt;
+        &lt;vue-component&gt;&lt;/vue-component&gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+
+{% include &#39;vue_component.html&#39; %}
+&lt;script&gt;
+    new Vue({
+        el: &#39;#app&#39;,
+        components: {
+            &#39;vue-component&#39; : vue_component
+        } 
+    })
+&lt;/script&gt;
+</code></pre>
+<p>This file includes 3 core elements, the head, body, and script. The head imports the required libraries Vue, Bootstrap, and Axios. The body renders the HTML template along with the Vue component. Finally, after including the <code>vue_component.html</code> file, the script creates a Vue instance named <code>app</code> and imports the Vue component.</p>
+<p>Note the difference between the Vue component, which creates reusable elements, and the Vue instance, which loads the components into a Vue application with a name defined by <code>el</code>.</p>
+<p>In order to connect the HTML template in the body element with Vue, we create a div tag id’d with the name of our Vue instance <code>&lt;div id=&quot;app&quot;&gt;&lt;/div&gt;</code>. In this way, our Vue component can be rendered within the tag: <code>&lt;vue-component&gt;&lt;/vue-component&gt;</code>!</p>
+<h2 id="running-the-application">Running the Application</h2>
+<p><a href="https://flask.palletsprojects.com/en/2.0.x/installation/">Install Flask</a> within your Python environment, and start it using:</p>
+<pre><code class="language-bash">FLASK_ENV=development flask run
+</code></pre>
+<p>Then navigate to the URL defined by our flask application <code>localhost:5000/frontend</code> and you will see:</p>
+<p><img src="/assets/posts/python-vue-components/hello-world.png" alt="The text “Hello World” rendered by the basic Vue component."></p>
+<p>That&#39;s it! We have successfully defined a Vue component and have imported it into our Flask template.</p>
+<p>Let&#39;s now expand on this example and create a Vue component that allows users to select and view protein metadata from KLIFS.</p>
+<h2 id="klifs-vue-component-frontend">KLIFS Vue Component Frontend</h2>
+<p>On the <code>vue_component.html</code> file replace <code>Hello World</code> with the following <a href="https://bootstrap-vue.org/docs/components/form">BootstrapVue</a> components to record user input and render an interactive button:</p>
+<pre><code class="language-html">&lt;script type=&quot;text/x-template&quot; id=&quot;vue-component-template&quot;&gt;
+&lt;div&gt;
+    &lt;b-form v-on:keydown.enter.prevent&gt;
+        &lt;b-form-input
+            v-model=&quot;pdb_id&quot;
+            placeholder=&quot;Enter PDB ID&quot;
+            required
+        &gt;&lt;/b-form-input&gt;
+        &lt;b-button variant=&quot;secondary&quot; size=&quot;sm&quot; v-on:click=&quot;getPDB&quot;&gt;
+            Retrieve PDB metadata
+        &lt;/b-button&gt;
+    &lt;/b-form&gt;
+&lt;/div&gt;
+&lt;/script&gt;
+...
+</code></pre>
+<p>Refresh <code>localhost:5000/frontend</code>, and the UI now contains:</p>
+<p><img src="/assets/posts/python-vue-components/pdb-id-input.png" alt="An “Enter PDB ID” text box above a “Retrieve PDB metadata” button."></p>
+<p>This is what Vue tooling looks like in action. The <code>v-on</code> property prevents the user from accidentally submitting a form. <code>v-model</code> is a handy tool for linking the content of HTML fields with a Vue variable. Here we use it to tag the content of the text field with the variable <code>pdb_id</code>.</p>
+<p>We also use some BootstrapVue properties such as the <code>placeholder</code> which is what the text field will display when empty. Also, <code>required</code> prevents a blank input from being submitted to the form.</p>
+<p>The button, when clicked, will run the <code>getPDB</code> function. Right now, it doesn&#39;t do anything since we haven&#39;t defined the function.</p>
+<h2 id="define-the-backend-interaction-with-axios">Define the Backend Interaction with Axios</h2>
+<p>Let&#39;s now define the function along with data variables. Within the same file, <code>vue_component.html</code>, replace the second script tag with the following:</p>
+<pre><code class="language-html">...
+&lt;script&gt;
+var vue_component = {
+    template: &#39;#vue-component-template&#39;,
+    delimiters: [&#39;[[&#39;, &#39;]]&#39;],
+    data: function () {
+      return {
+        pdb_id: &quot;&quot;,
+        pdb_exists: false,
+      }
+    },
+    methods: {
+        getPDB() {
+            axios.get(&quot;http://localhost:5000/pdb_id/&quot; + this.pdb_id)
+                .then(response =&gt; {
+                    this.DFG = response.data.DFG;
+                    this.aC_helix = response.data.aC_helix;
+                    // Show the list of attributes
+                    this.pdb_exists = true;
+                }).catch(e =&gt; (
+                    console.log(&quot;There was an error!&quot;)
+                ))
+        }
+    }
+};
+&lt;/script&gt;
+</code></pre>
+<p>This fully defines the backend reactivity of our Vue component. Let&#39;s examine each new part.</p>
+<ul>
+<li><code>delimiters</code>: Vue has a template notation similar to Jinja in Django and Flask where it uses double curly braces (<code>{{</code>, <code>}}</code>) to write backend variables into the frontend. We change Vue&#39;s notation to use double brackets (<code>[[</code>, <code>]]</code>) to prevent collisions.</li>
+<li><code>data</code>: We initialize two variables <code>pdb_id</code> and <code>pdb_exists</code>. As we have seen, <code>pdb_id</code> is tagged by the v-model of the BootstrapVue component and represents the text field content. Here we set its default value to an empty string. The other variable, <code>pdb_exists</code>, is a boolean set to false to indicate we haven’t retrieved the PDB metadata yet.</li>
+<li><code>methods</code>: This defines the <code>getPDB</code> function. It uses Axios, <code>axios.get</code>, to query our Flask backend for the KLIFS GET request. <code>this</code> refers to the current Vue component. We use it to get the content of the text field <code>this.pdb_id</code> to pass as a parameter of the GET request.</li>
+</ul>
+<p>Upon completion of the GET request, we parse the DFG and aC_helix values and insert them into new Vue data objects: <code>this.DFG</code> and <code>this.aC_helix</code>. Finally, we set the variable <code>pdb_exists</code> to true, indicating that the PDB id has successfully returned metadata.</p>
+<h2 id="display-the-backend-response">Display the Backend Response</h2>
+<p>Finally, let&#39;s display our newly defined variables to the user. Within the first set of script tags, after the form, add:</p>
+<pre><code class="language-html">...
+&lt;ul v-if=&quot;pdb_exists&quot;&gt;
+    &lt;li&gt;DFG: [[ this.DFG ]]&lt;/li&gt;
+    &lt;li&gt;aC_helix: [[ this.aC_helix ]]&lt;/li&gt;
+&lt;/ul&gt;
+</code></pre>
+<p>We are using plain HTML, but are still able to enhance it with Vue. The <code>v-if</code> Vue property controls if the HTML is displayed or not. Here we link it to the value of the Vue variable <code>pdb_exists</code>. Initially, it&#39;s false, but after a successful KLIFS query, it becomes true. Once it becomes true, the metadata (DFG, aC_helix) is displayed as bullet points.</p>
+<p>The variables from the backend are printed using Vue&#39;s delimiters <code>[[</code>, <code>]]</code>.</p>
+<p>Refresh <code>localhost:5000/frontend</code> and input a PDB id. After clicking the button, you will be able to see the corresponding metadata:</p>
+<p><img src="/assets/posts/python-vue-components/pdb-metadata-result.png" alt="After entering 2HYY and retrieving metadata, the component lists DFG: out and ac_Helix: in."></p>
+<p>Great! We now have a frontend component that asynchronously queries the backend template. We&#39;re displaying the metadata for 2HYY. 2HYY is a PDB of the protein kinase ABL1. This is a protein that the drug Imatinib, the type-II inhibitor mentioned earlier, can bind to. As expected, the protein is in a DFG-out conformation since Imatinib is a type-II inhibitor.</p>
+<h2 id="expose-data-from-vue-components">Expose Data from Vue Components</h2>
+<p>In some cases, it may be desirable to expose the variables of a Vue component to another process, such as an existing HTML form. This would allow a developer to construct an entire UI in HTML/CSS while abstracting the more complicated inputs and methods to imported Vue components.</p>
+<p>Let’s demonstrate how to do this by adjusting our current Vue Component to expose the values of DFG and aC_helix. Within the <code>vue_component.html</code> right where we left off under the bullet points in the first set of script tags, add the following div:</p>
+<pre><code class="language-html">...
+&lt;div v-if=&quot;pdb_exists&quot;&gt;
+    &lt;input type=&quot;hidden&quot; v-model=&quot;DFG&quot; name=&quot;vue_dfg&quot;&gt;
+    &lt;input type=&quot;hidden&quot; v-model=&quot;aC_helix&quot; name=&quot;vue_ac_helix&quot;&gt;
+&lt;/div&gt;
+</code></pre>
+<p>Since Flask cannot access a component’s data variables, we can instead expose them as hidden HTML input fields. After the PDB metadata has been returned successfully, <code>v-if=&quot;pdb_exists&quot;</code>, the data variables specified by <code>v-model</code> are placed within hidden HTML inputs. As a result, when the user submits a form containing this Vue component, the component&#39;s data variables will appear as values under the <code>name</code> property.</p>
+<p>We have included the entire code that demonstrates our KLIFS Vue component within a form submission to Flask as an example in the <a href="https://github.com/JustinChavez/vue-components-blog">Github repository</a>. This is the complete wireframe (click to enlarge):</p>
+<p><a href="/assets/posts/python-vue-components/form-to-result-diagram.png"><img src="/assets/posts/python-vue-components/form-to-result-diagram.png" alt="Diagram: the sketched form with a Vue component becomes the page “Featurize Protein Structure with a Vue Component”; submitting it shows “Successfully Received Entire Form!” with the task name, DFG: out, and AC Helix: in."></a></p>
+<p>This example submits the entire HTML form along with the protein metadata from the Vue component (DFG, aC_helix) to the backend. A process could use the data to then match a drug inhibitor type to the protein. This example could be expanded further to retrieve the 3-D file from KLIFS using Vue and submit it to a machine learning model for predictions.</p>
+<h2 id="closing">Closing</h2>
+<p>That’s it! To recap, you are now able to:</p>
+<ol>
+<li>Craft Vue components to asynchronously call backend functions and update the frontend</li>
+<li>Import those Vue components into a Vue instance for use in a Flask/Django template</li>
+<li>Expose the data variables of the Vue component as part of an external form</li>
+</ol>
+<p>Please find all the code examples in our Github repository: <a href="https://github.com/JustinChavez/vue-components-blog">https://github.com/JustinChavez/vue-components-blog</a>. Feel free to fork the repo — we’d love to see some creative applications of this tutorial.</p>
+
+</div>
+</article>
+<footer class="post-footer"><a href="/writing.html">More writing</a> · <a href="mailto:justin.chavez22@gmail.com">Send me a note</a></footer>
+  </main>
+</body>
+</html>

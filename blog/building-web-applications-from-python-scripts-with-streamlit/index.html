@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="How we turned Python scripts into web apps for chemists at Reverie Labs, with a molecule-filtering demo.">
+  <title>Building Web Applications From Python Scripts with Streamlit — Justin Chavez</title>
+  <link rel="canonical" href="https://www.justinchavez.com/blog/building-web-applications-from-python-scripts-with-streamlit/">
+  <meta property="og:title" content="Building Web Applications From Python Scripts with Streamlit — Justin Chavez">
+  <meta property="og:description" content="How we turned Python scripts into web apps for chemists at Reverie Labs, with a molecule-filtering demo.">
+  <meta property="og:type" content="article">
+  <meta property="og:site_name" content="Justin Chavez">
+  <meta property="og:url" content="https://www.justinchavez.com/blog/building-web-applications-from-python-scripts-with-streamlit/"><meta property="article:published_time" content="2021-04-26"><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Building Web Applications From Python Scripts with Streamlit","description":"How we turned Python scripts into web apps for chemists at Reverie Labs, with a molecule-filtering demo.","datePublished":"2021-04-26","author":{"@type":"Person","name":"Justin Chavez","url":"https://www.justinchavez.com/"},"mainEntityOfPage":"https://www.justinchavez.com/blog/building-web-applications-from-python-scripts-with-streamlit/"}</script>
+  <link rel="alternate" type="application/rss+xml" title="Justin Chavez — Writing" href="/feed.xml">
+  <link rel="stylesheet" href="/personal.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header>
+    <a class="name" href="/">Justin Chavez</a>
+    <nav aria-label="Main navigation"><a href="/">Home</a><a href="/writing.html" aria-current="page">Writing / Tutorials</a></nav>
+  </header>
+  <main id="main" class="post">
+<p class="back-link"><a href="/writing.html">← Writing / Tutorials</a></p>
+
+<article>
+<h1>Building Web Applications From Python Scripts with Streamlit</h1>
+<p class="post-meta">Justin Chavez · <time datetime="2021-04-26">April 26, 2021</time></p>
+<div class="post-body">
+<p><em>Originally published on the Reverie Labs engineering blog on April 26, 2021. That blog is no longer online, so I’ve republished the post here.</em></p>
+<p>Reverie’s machine learning engineers are constantly building and improving our computational models to develop novel therapeutics. We often create Python tools to perform valuable computations such as filtering molecules for a particular characteristic or searching our internal database for <a href="https://web.archive.org/web/2024/https://blog.reverielabs.com/building-a-global-pdb-repository/">specific PDB files to download</a>.</p>
+<p>To make these scripts available to our chemists, a web interface offers a pleasant user experience to accelerate our drug discovery process. We achieve this using the magic of <a href="https://streamlit.io/">Streamlit</a> to quickly deploy our scripts into interactive web applications.</p>
+<h2 id="what-is-streamlit">What is Streamlit</h2>
+<p>Streamlit is an open-source Python library that turns your scripts into shareable, interactive web applications.</p>
+<p>Instead of writing a web application from scratch, complete with frontend interaction and backend communication, you can simply add a couple of Streamlit functions and deploy an interactive web application in minutes.</p>
+<h2 id="how-it-works">How it works</h2>
+<p>As a Python library, Streamlit is installed by Pip and imported into your script:</p>
+<pre><code class="language-python">import streamlit as st
+</code></pre>
+<p>You can use the <strong>st</strong> module anywhere you would like to have interactive web components. For example, <strong>st.slider</strong> produces a slider the user can interact with to change the variable of the Python script.</p>
+<p>On the backend, the Streamlit library is automatically creating React components to turn each Streamlit function into a piece of user interaction. For a diagram of how this works, see the <a href="https://streamlit-components-tutorial.netlify.app/introduction/streamlit-react-python/">Streamlit Components tutorial</a>, an excellent resource for understanding how Streamlit renders each component.</p>
+<h2 id="demo">Demo</h2>
+<p>Time for a demonstration! The following is an application we might build in the drug discovery space. This Streamlit application takes a dataset of molecules and allows a user to visualize them and apply filters.</p>
+<p>Chemical filters are crucial in drug discovery and can help remove nondrug-like compounds from our datasets. Here we are filtering by molecular weight, a criterion in <a href="https://en.wikipedia.org/wiki/Lipinski%27s_rule_of_five">Lipinski’s rule of five</a>. While many filters are much more complicated, using criteria such as substructures, molecular weight is an excellent example for our demonstration.</p>
+<p>Below is the entire script that produces the web application. I will describe the core parts in detail:</p>
+<pre><code class="language-python"># streamlit_filter.py
+&quot;&quot;&quot;
+Docker Container: https://hub.docker.com/r/continuumio/anaconda3
+RDKit Installation: https://www.rdkit.org/docs/Install.html
+&quot;&quot;&quot;
+import mols2grid
+import pandas as pd
+import streamlit as st
+import streamlit.components.v1 as components
+from rdkit import Chem
+from rdkit.Chem.Descriptors import ExactMolWt
+
+st.title(&quot;Filter FDA Approved Drugs by Molecular Weight with Streamlit&quot;)
+
+
+@st.cache(allow_output_mutation=True)
+def download_dataset():
+    &quot;&quot;&quot;Loads once then cached for subsequent runs&quot;&quot;&quot;
+    df = pd.read_csv(
+        &quot;https://www.cureffi.org/wp-content/uploads/2013/10/drugs.txt&quot;, sep=&quot;\t&quot;
+    ).dropna()
+    return df
+
+
+def calc_mw(smiles_string):
+    &quot;&quot;&quot;Given a smiles string (ex. C1CCCCC1), calculate and return the molecular weight&quot;&quot;&quot;
+    mol = Chem.MolFromSmiles(smiles_string)
+    return ExactMolWt(mol)
+
+
+# Copy the dataset so any changes are not applied to the original cached version
+df = download_dataset().copy()
+df[&quot;mol_weight&quot;] = df.apply(lambda x: calc_mw(x[&quot;smiles&quot;]), axis=1)
+
+weight_cutoff = st.slider(
+    label=&quot;Show compounds that weigh below:&quot;,
+    min_value=0,
+    max_value=500,
+    value=150,
+    step=10,
+)
+
+
+df_result = df[df[&quot;mol_weight&quot;] &lt; weight_cutoff]
+st.write(df_result)
+
+
+raw_html = mols2grid.display(df_result, mapping={&quot;smiles&quot;: &quot;SMILES&quot;})._repr_html_()
+components.html(raw_html, width=900, height=900, scrolling=True)
+</code></pre>
+<p><a href="https://gist.github.com/JustinChavez/c7412df40fe93abf58192da204df4019">View <code>streamlit_filter.py</code> as a GitHub gist</a></p>
+<p>Inside a Docker container with the Anaconda distribution of Python, I use Conda to install <a href="https://www.rdkit.org/">RDKit</a>, an Open-Source Cheminformatics Software (see gist for links).</p>
+<p>After initializing the RDKit Conda environment, run the following command to install Streamlit and <a href="https://github.com/cbouy/mols2grid">mols2grid</a>, a molecular visualization library.</p>
+<pre><code class="language-bash">pip install streamlit mols2grid
+</code></pre>
+<p>We will be using a dataset of <a href="https://www.cureffi.org/2013/10/04/list-of-fda-approved-drugs-and-cns-drugs-with-smiles/">FDA-approved drugs</a> (credits to Eric Vallabh Minikel for curation). This dataset contains the <a href="https://en.wikipedia.org/wiki/Simplified_molecular-input_line-entry_system">SMILES</a>, a text-based description of a compound’s chemical structure, for each drug.</p>
+<p>CureFFI provides the dataset as a tab-separated text file. Using Pandas, we can download the file into a DataFrame. We apply preprocessing to remove any missing values:</p>
+<pre><code class="language-python">@st.cache(allow_output_mutation=True)
+def download_dataset():
+    &quot;&quot;&quot;Loads once then cached for subsequent runs&quot;&quot;&quot;
+    df = pd.read_csv(
+        &quot;https://www.cureffi.org/wp-content/uploads/2013/10/drugs.txt&quot;, sep=&quot;\t&quot;
+    ).dropna()
+    return df
+</code></pre>
+<p>Streamlit operates by re-running the script on every user interaction with any changed inputs. We want to avoid long processes like downloading files to be repeated during the session. To prevent this, Streamlit provides built-in caching using the <strong>st.cache</strong> decorator.</p>
+<pre><code class="language-python">df = download_dataset().copy()
+</code></pre>
+<p>RDKit reads the SMILES into a Mol object to calculate the molecular weight.</p>
+<pre><code class="language-python">from rdkit import Chem
+from rdkit.Chem.Descriptors import ExactMolWt
+
+def calc_mw(smiles_string):
+    &quot;&quot;&quot;Given a smiles string (ex. C1CCCCC1), calculate and return the molecular weight&quot;&quot;&quot;
+    mol = Chem.MolFromSmiles(smiles_string)
+    return ExactMolWt(mol)
+</code></pre>
+<p>We then create a new dataset column of molecular weights by applying the <strong>calc_mw</strong> function to the SMILES of each row.</p>
+<pre><code class="language-python">df[&quot;mol_weight&quot;] = df.apply(lambda x: calc_mw(x[&quot;smiles&quot;]), axis=1)
+</code></pre>
+<p>Streamlit can create a slider that allows the user to choose what the weight cutoff should be.</p>
+<pre><code class="language-python">weight_cutoff = st.slider(
+    label=&quot;Show compounds that weigh below:&quot;,
+    min_value=0,
+    max_value=500,
+    value=150,
+    step=10,
+)
+</code></pre>
+<p>The variable <strong>weight_cutoff</strong> is reading in the value set by the user. We use it to filter the dataset:</p>
+<pre><code class="language-python">df_result = df[df[&quot;mol_weight&quot;] &lt; weight_cutoff]
+</code></pre>
+<p>Finally, we display the results on the browser. We can show the filtered DataFrame by using the write function from Streamlit:</p>
+<pre><code class="language-python">st.write(df_result)
+</code></pre>
+<p>For a more interactive presentation, we can draw the compounds using the SMILES. With the mols2grid library, which uses RDKit, we illustrate the drugs with functionality such as pagination and search.</p>
+<p>Mols2grid returns an IPython object intended for use inside a Jupyter Notebook or Google Colab environment. To enable compatibility within Streamlit, we can apply the <code>_repr_html_</code> function to the IPython object. The function will return the IPython object in HTML that we can display in Streamlit using the components library:</p>
+<pre><code class="language-python">raw_html = mols2grid.display(df_result, mapping={&quot;smiles&quot;: &quot;SMILES&quot;})._repr_html_()
+components.html(raw_html, width=900, height=900, scrolling=True)
+</code></pre>
+<p>Now run the script and interact with the Streamlit application!</p>
+<pre><code class="language-bash">streamlit run streamlit_filter.py
+</code></pre>
+<p>That’s it! By adding a couple of Streamlit functions to the Python script, you now have a functioning web application.</p>
+<p>Streamlit does make some tradeoffs to achieve a seamless web development experience. For example, the amount of frontend customization is limited to the functions Streamlit provides. Also, there aren’t extensive design options to customize the look and feel. Regardless, this is a small price to pay as Streamlit provides enough functionality to cover some of our simple use cases.</p>
+<h2 id="deployment-and-testing">Deployment and Testing</h2>
+<p>For security, we launch Streamlit in a Kubernetes pod accessible through our VPN. Anytime a developer pushes a change to our Streamlit git repository, we rebuild and pull a fresh container. The refresh can also update our Kubernetes pod with the newest version of Streamlit. Being up to date is crucial since Streamlit is constantly being improved with new <a href="https://docs.streamlit.io/en/stable/api.html#beta-and-experimental-features">beta and experimental features</a>.</p>
+<p>The routine iteration of our scripts and the Streamlit versions creates a need for testing on each pull request. The challenge is that Streamlit catches most errors to display them to the user. This catch prevents testing frameworks like Pytest from seeing errors.</p>
+<p>We work around this by running docker containers with a Selenium image installed with Chrome web browser and ChromeDriver. This allows for automated interaction with our Streamlit instance. We can then run a test with SeleniumBase to assert there are no errors printed on the page on our Streamlit app. <a href="https://blog.streamlit.io/testing-streamlit-apps-using-seleniumbase/">This solution is based on a similar Streamlit protocol</a>.</p>
+<h2 id="extending-streamlit-with-components">Extending Streamlit with Components</h2>
+<p>We are just scratching the surface of what&#39;s possible with Streamlit. The recently introduced components functionality enables the rendering of Javascript within a Streamlit application. There are already a number of exciting components that are used in the cheminformatics space such as <a href="https://github.com/napoles-uach/streamlit_3dmol">streamlit_3dmol</a> to visualize 3-D molecules.</p>
+<p><img src="/assets/posts/building-web-applications-from-python-scripts-with-streamlit/streamlit-3dmol-component.png" alt="A Streamlit app titled “Hello 3dmol component!!” showing a 3-D protein structure, with controls to download a structure by ID or upload a file, and buttons to change the visualization style."></p>
+<p>In addition, there is a great tutorial on how to extend the popular <a href="https://jsme-editor.github.io/">JSME molecule editor</a> (by B. Bienfait and P. Ertl) into a Streamlit app with React: <a href="https://iwatobipen.wordpress.com/2020/12/30/embed-molecular-editor-into-streamlit-app-streamlit-chemoinformatics-rdkit/">https://iwatobipen.wordpress.com/2020/12/30/embed-molecular-editor-into-streamlit-app-streamlit-chemoinformatics-rdkit/</a>. This custom component enables the drawing of compounds as an input to a Streamlit app:</p>
+<p><a href="https://www.youtube.com/watch?v=IX00WUdn_YA">Watch the molecule editor component in a Streamlit app on YouTube</a></p>
+
+</div>
+</article>
+<footer class="post-footer"><a href="/writing.html">More writing</a> · <a href="mailto:justin.chavez22@gmail.com">Send me a note</a></footer>
+  </main>
+</body>
+</html>

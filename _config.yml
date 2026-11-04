@@ -1,0 +1,16 @@
+# GitHub Pages serves the generated HTML. Writing sources and previews are excluded.
+exclude:
+  - _content
+  - _templates
+  - _tools
+  - _tests
+  - _preview
+  - _build-manifest.json
+  - node_modules
+  - variants
+  - package.json
+  - package-lock.json
+  - README.md
+  - assets/vendor
+  - assets/horizon-landscape.png
+  - site.css

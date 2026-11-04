@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /variants/
+Disallow: /_preview/
+Disallow: /_content/
+Sitemap: https://www.justinchavez.com/sitemap.xml
