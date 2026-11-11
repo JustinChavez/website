@@ -27,7 +27,7 @@
 <h1>How to make Isometric cities</h1>
 <p class="post-meta">Justin Chavez · <time datetime="2026-11-11">November 11, 2026</time></p>
 <div class="post-body">
-<figure class="cover-hero" id="cover-hero"><img src="/assets/posts/isometric-sf-how/cover.jpg" alt="Pixel-art downtown San Francisco with the piers and the Bay Bridge, and the title: how to make isometric cities"></figure><style>body > .cover-hero{margin:0;background:#1d3a44;line-height:0}body > .cover-hero img{display:block;width:100%;height:clamp(150px,37.5vw,460px);object-fit:cover;object-position:50% 0;cursor:default}</style><script>(function(){var f=document.getElementById("cover-hero"),m=document.getElementById("main");if(f&&m)m.parentNode.insertBefore(f,m)})();</script><p>This is a guide for how I create isometric cities like <a href="https://isometricsf.com">Isometric SF</a>.</p>
+<figure class="cover-hero" id="cover-hero"><img src="/assets/posts/isometric-sf-how/cover.jpg" alt="Pixel-art downtown San Francisco with the piers and the Bay Bridge, and the title: how to make isometric cities"></figure><style>body > .cover-hero{margin:0;background:#1d3a44;line-height:0}body > .cover-hero img{display:block;width:100%;height:clamp(150px,37.5vw,460px);object-fit:cover;object-position:50% 0;cursor:default}</style><script>(function(){var f=document.getElementById("cover-hero"),m=document.getElementById("main");if(f&&m)m.parentNode.insertBefore(f,m)})();</script><p>This is a guide for how to create isometric cities like <a href="https://isometricsf.com">Isometric SF</a>.</p>
 <h2 id="what-you-ll-need">What you&#39;ll need</h2>
 <p>First you need the inspiration! Which city are you going to draw? And what viewpoint, style, or geometry do you want it to have?</p>
 <p>Next, you need a lot of storage. To cover all 1,300 square miles, I used 3 terabytes of external drives across captures, recaptures, and experiments. Get SSDs: color correction ran about 10x faster on SSD than on HDD.</p>
@@ -47,7 +47,7 @@
 <p>To take the picture, we render those tiles in three.js. Headless Chromium, driven by Playwright, takes the screenshot, and that setup lets us capture in parallel.</p>
 <p>If you&#39;re starting out, I would capture a part of the city you know. Your coding agent only needs the bounds of the area to plan the captures.</p>
 <p>To draw those bounds, I recommend <a href="https://geojson.io">geojson.io</a>.</p>
-<figure><video src="/assets/posts/isometric-sf-how/draw-1-downtown.mp4" controls muted loop playsinline preload="metadata" aria-label="Screen recording of geojson.io: a polygon drawn around downtown San Francisco, with its JSON coordinates listed on the right."></video><figcaption>Drawing downtown San Francisco on geojson.io. The JSON on the right is what you give your coding agent.</figcaption></figure><p>Then send the following to your coding agent:</p>
+<figure><video src="/assets/posts/isometric-sf-how/draw-1-downtown.mp4" autoplay controls muted loop playsinline preload="metadata" aria-label="Screen recording of geojson.io: a polygon drawn around downtown San Francisco, with its JSON coordinates listed on the right."></video><figcaption>Drawing downtown San Francisco on geojson.io. The JSON on the right is what you give your coding agent.</figcaption></figure><p>Then send the following to your coding agent:</p>
 <pre><code>Use the tile capturer to render every tile in [your GeoJSON] at [your capture angle].
 </code></pre>
 <p>Not every capture will work. I cover how to <a href="#finding-and-fixing-bad-renders">catch and fix the bad ones</a> later.</p>
